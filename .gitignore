@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+/.vs/SimdAI
+/packages/CatchOrg.Catch.2.8.0
+/SimdAI/x64/Debug
+/x64/Debug
