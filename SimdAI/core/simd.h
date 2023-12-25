@@ -4,6 +4,7 @@
 #include <cassert>
 #include <algorithm>
 #include <functional>
+#include <initializer_list>
 
 // Forward declare the simd class
 template<typename T, std::size_t N>
@@ -13,93 +14,83 @@ class simd;
 template<typename T, std::size_t N>
 class simd_mask {
 public:
-	simd_mask(__m256i mask) : mask(mask) {}
+    simd_mask(__m256i mask) : mask(mask) {}
 
-	// ... Other mask-related operations can be added here
-
-	__m256i get() const {
-		return mask;
-	}
+    __m256i get() const {
+        return mask;
+    }
 
 private:
-	__m256i mask;
+    __m256i mask;
 };
 
 // simd class definition
 template<typename T, std::size_t N = 8>
 class simd {
 public:
-	simd() : data(_mm256_setzero_ps()) {}
+    simd() : data(_mm256_setzero_ps()) {}
 
-	simd(std::initializer_list<T> init) {
-		assert(init.size() == N);
-		std::copy(init.begin(), init.end(), buffer);
-		data = _mm256_loadu_ps(buffer);
-	}
+    simd(std::initializer_list<T> init) {
+        assert(init.size() == N);
+        alignas(32) T temp[N];
+        std::copy(init.begin(), init.end(), temp);
+        data = _mm256_loadu_ps(temp);
+    }
 
-	// Constructor that directly accepts a __m256 type
-	explicit simd(__m256 val) : data(val) {
-		_mm256_storeu_ps(buffer, data); // Store the data into the buffer for direct access
-	}
+    explicit simd(__m256 val) : data(val) {}
 
-	// Load and store operations
-	static simd load(const T* data) {
-		return simd(_mm256_loadu_ps(data));
-	}
+    static simd load(const T* data) {
+        return simd(_mm256_loadu_ps(data));
+    }
 
-	void store(T* dest) const {
-		_mm256_storeu_ps(dest, data);
-	}
+    void store(T* dest) const {
+        _mm256_storeu_ps(dest, data);
+    }
 
-	// Arithmetic operations
-	simd operator+(const simd& other) const {
-		return simd(_mm256_add_ps(data, other.data));
-	}
+    simd operator+(const simd& other) const {
+        return simd(_mm256_add_ps(data, other.data));
+    }
 
-	simd operator-(const simd& other) const {
-		return simd(_mm256_sub_ps(data, other.data));
-	}
+    simd operator-(const simd& other) const {
+        return simd(_mm256_sub_ps(data, other.data));
+    }
 
-	simd operator*(const simd& other) const {
-		return simd(_mm256_mul_ps(data, other.data));
-	}
+    simd operator*(const simd& other) const {
+        return simd(_mm256_mul_ps(data, other.data));
+    }
 
-	simd operator/(const simd& other) const {
-		return simd(_mm256_div_ps(data, other.data));
-	}
+    simd operator/(const simd& other) const {
+        return simd(_mm256_div_ps(data, other.data));
+    }
 
-	// Comparison operators
-	simd_mask<T, N> operator<(const simd& other) const {
-		return simd_mask<T, N>(_mm256_castps_si256(_mm256_cmp_ps(data, other.data, _CMP_LT_OS)));
-	}
+    simd_mask<T, N> operator<(const simd& other) const {
+        return simd_mask<T, N>(_mm256_castps_si256(_mm256_cmp_ps(data, other.data, _CMP_LT_OS)));
+    }
 
-	// ... Additional member functions and operators
+    __m256 get() const {
+        return data;
+    }
 
-	// Get the internal __m256 data for use in free functions
-	__m256 get() const {
-		return data;
-	}
+    constexpr std::size_t size() const {
+        return N;
+    }
 
-	// Size method to return the number of elements in the SIMD vector
-	constexpr std::size_t size() const {
-		return N;
-	}
+    T operator[](std::size_t index) const {
+        assert(index < N);
+        alignas(32) T temp[N];
+        _mm256_storeu_ps(temp, data);
+        return temp[index];
+    }
 
-	// Overloaded subscript operator for element access
-	T& operator[](std::size_t index) {
-		assert(index < N); // Bounds checking in debug mode
-		return buffer[index];
-	}
-
-	const T& operator[](std::size_t index) const {
-		assert(index < N); // Bounds checking in debug mode
-		return buffer[index];
-	}
+    // Setting an element is more complex and would usually not be recommended for SIMD types.
+    // If absolutely needed, it can be implemented using intrinsics, but it's costly in terms of performance.
 
 private:
-	__m256 data;
-	alignas(32) T buffer[N];
+    __m256 data;
 };
+
+// Reduce operations and other functions remain the same
+
 
 // Reduce operation for sum
 template<typename T, std::size_t N>
