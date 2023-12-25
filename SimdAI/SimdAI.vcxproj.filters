@@ -18,6 +18,9 @@
     <ClCompile Include="SimdAI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="core_tests\simd_tests.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

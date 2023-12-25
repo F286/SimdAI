@@ -134,6 +134,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="core_tests\simd_tests.cpp" />
     <ClCompile Include="SimdAI.cpp" />
   </ItemGroup>
   <ItemGroup>
