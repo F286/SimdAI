@@ -19,7 +19,10 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="core_tests\simd_tests.cpp">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="core_tests\tensor_tests.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
