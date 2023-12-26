@@ -3,17 +3,6 @@
 #include "core/simd.h"
 #include "core/tensor.h"
 
-TEST_CASE("Tensor operations", "[tensor]") {
-    Tensor<float> tensor({ 2, 3, 4 });
-
-    SECTION("Element Access and Modification") {
-        //tensor({ 0, 0, 0 }) = 1.0f;
-        //tensor({ 1, 2, 3 }) = 2.0f;
-
-        //CHECK(tensor({ 0, 0, 0 }) == Approx(1.0f));
-        //CHECK(tensor({ 1, 2, 3 }) == Approx(2.0f));
-    }
-}
 
 // Additional test cases can be added here, following the same structure.
 

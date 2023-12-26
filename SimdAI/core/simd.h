@@ -28,22 +28,34 @@ private:
 template<typename T, std::size_t N = 8>
 class simd {
 public:
-    simd() : data(_mm256_setzero_ps()) {}
+    explicit simd() : data(_mm256_setzero_ps()) {}
 
-    simd(std::initializer_list<T> init) {
-        assert(init.size() == N);
-        alignas(32) T temp[N];
-        std::copy(init.begin(), init.end(), temp);
-        data = _mm256_loadu_ps(temp);
+    explicit simd(const T* mem) {
+        data = _mm256_loadu_ps(mem);
     }
 
     explicit simd(__m256 val) : data(val) {}
 
-    static simd load(const T* data) {
+    explicit simd(T val) : data(_mm256_set1_ps(val)) {}
+
+    // Static zero method
+    static simd zero() {
+        return simd(_mm256_setzero_ps());
+    }
+
+    static simd create_from(std::initializer_list<T> init) {
+        if (init.size() != N) {
+            throw std::invalid_argument("Invalid size for simd from initializer list: size = (" + std::to_string(init.size()) + "), N = (" + std::to_string(N) + ").");
+        }
+
+        return simd(_mm256_loadu_ps(&*init.begin()));
+    }
+
+    static simd copy_from(const T* data) {
         return simd(_mm256_loadu_ps(data));
     }
 
-    void store(T* dest) const {
+    void copy_to(T* dest) const {
         _mm256_storeu_ps(dest, data);
     }
 
@@ -67,6 +79,27 @@ public:
         return simd_mask<T, N>(_mm256_castps_si256(_mm256_cmp_ps(data, other.data, _CMP_LT_OS)));
     }
 
+    // Compound assignment operators
+    simd& operator+=(const simd& other) {
+        data = _mm256_add_ps(data, other.data);
+        return *this;
+    }
+
+    simd& operator-=(const simd& other) {
+        data = _mm256_sub_ps(data, other.data);
+        return *this;
+    }
+
+    simd& operator*=(const simd& other) {
+        data = _mm256_mul_ps(data, other.data);
+        return *this;
+    }
+
+    simd& operator/=(const simd& other) {
+        data = _mm256_div_ps(data, other.data);
+        return *this;
+    }
+
     __m256 get() const {
         return data;
     }
@@ -82,8 +115,12 @@ public:
         return temp[index];
     }
 
-    // Setting an element is more complex and would usually not be recommended for SIMD types.
-    // If absolutely needed, it can be implemented using intrinsics, but it's costly in terms of performance.
+    // Mutable subscript reference operator
+    T& operator[](std::size_t index) {
+        assert(index < N);
+        float* raw = reinterpret_cast<float*>(&data);
+        return *(raw + index);
+    }
 
 private:
     __m256 data;
