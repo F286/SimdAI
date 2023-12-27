@@ -27,9 +27,9 @@ class Tensor {
 public:
     using Extents = std::dextents<int, 2>;
 
-    // Constructor for a tensor with an initializer list for shape
+    // Constructor for a tensor with an initializer list for extents (shape)
     Tensor(Extents extents)
-        : shape(extents), data(total_elements(extents))
+        : storage(total_elements(extents)), extents(extents)
     {
         // Ensure each dimension, particularly the innermost one, is a multiple of the SIMD width.
         //assert(shape.back() % simd<T, 8>::size() == 0 && "Innermost dimension must be a multiple of the SIMD width.");
@@ -38,18 +38,27 @@ public:
     // Constructor for a tensor with an initializer list for data
     Tensor(std::initializer_list<std::initializer_list<simd<float>>> data_init)
     {
-        // Compute and assign shape
+        // Compute and assign extents
         size_t size_x = 1;
         for (const auto& row : data_init)
         {
             size_x = std::max(size_x, row.size());
         }
 
-        const size_t size_y = data_init.size();
-		shape = Extents{ size_y, size_x }; // Least significant dimension is stored towards the right
+        size_t size_y = data_init.size();
+
+        // Shape 'rounds up' to SIMD size
+        auto roundUpToSIMDSize = [simd_size = simd<float>::size()](size_t size) {
+            return ((size + simd_size - 1) / simd_size) * simd_size;
+        };
+
+        size_x = roundUpToSIMDSize(size_x);
+        size_y = roundUpToSIMDSize(size_y);
+
+        extents = Extents{ size_y, size_x }; // Least significant dimension is stored towards the right
 
         // Initialize storage
-        storage = std::vector<simd<T>>(total_elements(shape));
+        storage = std::vector<simd<T>>(total_elements(extents));
 
         // Populate storage
         auto store_to = data();
@@ -77,60 +86,48 @@ public:
         return data()[row, column];
     }
 
-    std::mdspan<simd<T>, Extents> data()
+    std::mdspan<const simd<T>, Extents> data() const
     {
-        return std::mdspan(storage.data(), shape);
+        return std::mdspan(storage.data(), extents);
     }
 
-    Extents shape {};
-    //std::vector<std::size_t> shape;
+    std::mdspan<simd<T>, Extents> data()
+    {
+        return std::mdspan(storage.data(), extents);
+    }
+
+    [[nodiscard]] int shape(size_t rank) const
+    {
+        return extents.extent(rank);
+    }
 
 private:
-    std::vector<simd<T>> storage;
+	std::vector<simd<T>> storage;
+	Extents extents{};
 };
-
-
 
 // Multiply function for two 2D Tensors
 template<typename T>
 Tensor<T> multiply(const Tensor<T>& leftMatrix, const Tensor<T>& rightMatrix) {
-	if (leftMatrix.shape[1] != rightMatrix.shape[0]) {
-		if (leftMatrix.shape[1] != rightMatrix.shape[0]) {
-			throw std::invalid_argument("Matrix dimensions must be compatible for multiplication: left matrix shape = (" + std::to_string(leftMatrix.shape[0]) + ", " + std::to_string(leftMatrix.shape[1]) + "), right matrix shape = (" + std::to_string(rightMatrix.shape[0]) + ", " + std::to_string(rightMatrix.shape[1]) + ").");
-		}
-	}
+    if (leftMatrix.shape(1) != rightMatrix.shape(0)) {
+        throw std::invalid_argument("Matrix dimensions must be compatible for multiplication.");
+    }
 
-	// Creating the result tensor with dimensions derived from the input matrices
-    Tensor<T> result({ leftMatrix.shape[0], rightMatrix.shape[1] });
+    Tensor<T> result(typename Tensor<T>::Extents{ leftMatrix.shape(0), rightMatrix.shape(1) });
 
-    // Compute multiplication using simd operations for efficiency
-    const std::size_t simdWidth = simd<T>::size();
-    for (std::size_t i = 0; i < leftMatrix.shape[0]; ++i) 
-    {
-        for (std::size_t j = 0; j < rightMatrix.shape[1]; j += simdWidth) 
-        {
-            // Initialize sum as a simd vector of zeros
+    const std::size_t simdWidth = simd<T, 8>::size();
+    for (std::size_t i = 0; i < leftMatrix.shape(0); ++i) {
+        for (std::size_t j = 0; j < rightMatrix.shape(1); j += simdWidth) {
             simd<T> sum = simd<T>::zero();
 
-            // Iterate over the shared dimension
-            for (std::size_t k = 0; k < leftMatrix.shape[1]; ++k) 
-            {
-                // Load a simd-width vector from the left matrix
-                simd<T> matA_simd = leftMatrix.simd_at(i, (k / simdWidth) * simdWidth);
+            for (std::size_t k = 0; k < leftMatrix.shape(1); ++k) {
+                simd<T> matA_simd = leftMatrix[i, k];
 
-                // Accumulate the product into the sum
-                for (std::size_t l = 0; l < simdWidth; ++l) 
-                {
-                    if (k + l < leftMatrix.shape[1] && j + l < rightMatrix.shape[1]) 
-                    {
-                        float r = matA_simd[l] * rightMatrix[k, j];
-                        sum[l] = sum[l] + r;
-                    }
-                }
+                simd<T> rightVal = rightMatrix[k, j];
+                sum = sum + matA_simd * rightVal;
             }
 
-            // Store the result back into the result tensor
-            result.simd_at(i, j) += sum;
+            result[i, j] = sum;
         }
     }
     return result;

@@ -18,8 +18,8 @@ TEST_CASE("Tensor operations", "[tensor]") {
 
 TEST_CASE("Tensor multiplication is computed", "[multiply]") {
 
-	Tensor<float> a{ { simd<float>{1.f} } };
-	Tensor<float> b{ { simd<float>{2.f} }, { simd<float>{2.f} } };
+	Tensor<float> a{ { simd<float>{1.f}, simd<float>{2.f} } };
+	Tensor<float> b{ { simd<float>{3.f} }, { simd<float>{4.f} } };
 
 	//Tensor<float> a{ {1, 2}, {3, 4} };
 	//Tensor<float> b{ {1, 2}, {3, 4} };
@@ -33,7 +33,7 @@ TEST_CASE("Tensor multiplication is computed", "[multiply]") {
 	//				  {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, {9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f},
 	//				  {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, {9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f},
 	//				  {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, {9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f}};
-	//Tensor<float> c = multiply(a, b);
+	Tensor<float> c = multiply(a, b);
 
 	//Tensor<float> expected_c{ {90.0f, 100.0f, 110.0f, 120.0f, 130.0f, 140.0f, 150.0f, 160.0f},
 	//						   {198.0f, 225.0f, 252.0f, 279.0f, 306.0f, 333.0f, 360.0f, 387.0f},
