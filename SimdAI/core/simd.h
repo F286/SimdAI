@@ -38,6 +38,18 @@ public:
 
     explicit simd(T val) : data(_mm256_set1_ps(val)) {}
 
+    // Copy constructor
+    simd(const simd& other) : data(other.data) {}
+
+    // Copy assignment operator
+    simd& operator=(const simd& other) {
+        if (this != &other) {
+            data = other.data;
+        }
+        return *this;
+    }
+
+
     // Static zero method
     static simd zero() {
         return simd(_mm256_setzero_ps());

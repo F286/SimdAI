@@ -3,13 +3,19 @@
 
 TEST_CASE("SIMD operations", "[simd]") 
 {
-	SECTION("Sum and Min Reduction") 
+	SECTION("Sum Reduction") 
 	{
 		simd<float> x = simd<float>::create_from({ 1.0f, -2.0f, 3.0f, -4.0f, 5.0f, -6.0f, 7.0f, -8.0f });
 		float sum = reduce(x);
-		float min_val = reduce_min(x);
 
 		CHECK(sum == Approx(-4.0f));
+	}
+
+	SECTION("Min Reduction")
+	{
+		simd<float> x = simd<float>::create_from({ 1.0f, -2.0f, 3.0f, -4.0f, 5.0f, -6.0f, 7.0f, -8.0f });
+		float min_val = reduce_min(x);
+
 		CHECK(min_val == Approx(-8.0f));
 	}
 

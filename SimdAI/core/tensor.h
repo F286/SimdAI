@@ -107,27 +107,41 @@ private:
 };
 
 // Multiply function for two 2D Tensors
+
 template<typename T>
 Tensor<T> multiply(const Tensor<T>& leftMatrix, const Tensor<T>& rightMatrix) {
-    if (leftMatrix.shape(1) != rightMatrix.shape(0)) {
-        throw std::invalid_argument("Matrix dimensions must be compatible for multiplication.");
-    }
+
+    constexpr size_t TILE_SIZE = simd<T>::size(); // SIMD width and tile size
 
     Tensor<T> result(typename Tensor<T>::Extents{ leftMatrix.shape(0), rightMatrix.shape(1) });
 
-    const std::size_t simdWidth = simd<T, 8>::size();
-    for (std::size_t i = 0; i < leftMatrix.shape(0); ++i) {
-        for (std::size_t j = 0; j < rightMatrix.shape(1); j += simdWidth) {
-            simd<T> sum = simd<T>::zero();
+    for (size_t i = 0; i < leftMatrix.shape(0); i += TILE_SIZE) {
+        for (size_t j = 0; j < rightMatrix.shape(1); j += TILE_SIZE) {
+            // Initialize the result tile
+            simd<T> resultTile {}; // Fill with zeros
 
-            for (std::size_t k = 0; k < leftMatrix.shape(1); ++k) {
-                simd<T> matA_simd = leftMatrix[i, k];
+            for (size_t k = 0; k < leftMatrix.shape(1); k += TILE_SIZE) {
+                // Load tiles from leftMatrix and rightMatrix
+                std::array<simd<T>, TILE_SIZE> leftTile;  // Load this tile from leftMatrix
+                std::array<simd<T>, TILE_SIZE> rightTile; // Load this tile from rightMatrix
 
-                simd<T> rightVal = rightMatrix[k, j];
-                sum = sum + matA_simd * rightVal;
+                // Perform multiplication on the tiles
+                for (size_t ti = 0; ti < TILE_SIZE; ++ti) {
+                    simd<T> sum = simd<T>::zero();
+                    for (size_t tk = 0; tk < TILE_SIZE; ++tk) {
+                        sum = sum + leftTile[ti] * rightTile[tk];
+                    }
+                    resultTile[ti] += reduce(sum);
+                }
             }
 
-            result[i, j] = sum;
+            // Store the result tile back into the result tensor
+            //for (size_t ti = 0; ti < TILE_SIZE; ++ti) {
+            //    result[i + ti, j] = resultTile[ti];
+            //}
+
+            // Store the result tile back into the result tensor
+            result[i, j] += resultTile;
         }
     }
     return result;
