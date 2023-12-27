@@ -3,8 +3,16 @@
   "Id": "cbdfecc5-8838-48c4-bd61-caf58e4727b4",
   "Items": [
     {
+      "Id": "6bc97810-25e3-4014-a46a-95a92c5abe36",
+      "Command": "-b"
+    },
+    {
       "Id": "4275d6e9-a36d-492c-b0f7-99e119d31de1",
       "Command": "--break"
+    },
+    {
+      "Id": "fbe44c9c-863c-41c2-b5aa-0a248e33c3fc",
+      "Command": "-?"
     }
   ]
 }

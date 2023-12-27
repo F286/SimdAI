@@ -100,6 +100,19 @@ public:
         return *this;
     }
 
+    friend bool operator==(const simd& lhs, const simd& rhs) {
+        // Compare the two __m256 values
+        __m256 cmp = _mm256_cmp_ps(lhs.data, rhs.data, _CMP_EQ_OQ);
+
+        // Check if all elements are equal
+        return (_mm256_movemask_ps(cmp) == 0xFF);
+    }
+
+    friend bool operator!=(const simd& lhs, const simd& rhs) {
+        // Use the == operator and invert the result
+        return !(lhs == rhs);
+    }
+
     __m256 get() const {
         return data;
     }
@@ -120,6 +133,19 @@ public:
         assert(index < N);
         float* raw = reinterpret_cast<float*>(&data);
         return *(raw + index);
+    }
+
+    // Used for debug output
+    friend std::ostream& operator<<(std::ostream& os, const simd& obj) {
+        os << "simd{";
+        for (std::size_t i = 0; i < N; ++i) {
+            if (i != 0) {
+                os << ", ";
+            }
+            os << obj[i]; // Using the subscript operator to access elements
+        }
+        os << "}";
+        return os;
     }
 
 private:

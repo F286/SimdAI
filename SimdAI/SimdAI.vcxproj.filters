@@ -35,5 +35,8 @@
     <ClInclude Include="core\tensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="external\mdspan.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
