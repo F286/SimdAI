@@ -20,6 +20,16 @@ namespace
         }
         return total;
     }
+
+    /// @brief Rounds a number's size up to given SIMD width
+    auto round_up_to_simd_width = [simd_size = simd<float>::size()](size_t size) {
+        return ((size + simd_size - 1) / simd_size) * simd_size;
+    };
+
+    /// @brief Calculates the minimum size in SIMD width units that contains a given number of elements
+    auto elements_to_simd_units = [simd_size = simd<float>::size()](size_t elements) {
+        return (elements + simd_size - 1) / simd_size;
+    };
 }
 
 template<typename T>
@@ -47,13 +57,9 @@ public:
 
         size_t size_y = data_init.size();
 
-        // Shape 'rounds up' to SIMD size
-        auto roundUpToSIMDSize = [simd_size = simd<float>::size()](size_t size) {
-            return ((size + simd_size - 1) / simd_size) * simd_size;
-        };
-
-        size_x = roundUpToSIMDSize(size_x);
-        size_y = roundUpToSIMDSize(size_y);
+ /*       // Shape 'rounds up' to SIMD size
+        size_x = round_up_to_simd_width(size_x);
+        size_y = round_up_to_simd_width(size_y);*/
 
         extents = Extents{ size_y, size_x }; // Least significant dimension is stored towards the right
 
@@ -96,9 +102,25 @@ public:
         return std::mdspan(storage.data(), extents);
     }
 
-    [[nodiscard]] int shape(size_t rank) const
+    // Gets the shape of the tensor at a given rank. Specified in order starting from zero and increasing, from least significant (very right) to most significant (very left)
+    [[nodiscard]] int shape(int rank) const
     {
+        // The mdspan is storing dimensions with the highest rank being the least significant. If negative, we need to access from least significant to match Pytorch syntax.
+
+        // Calculate adjusted rank. If rank is negative, Extents::rank() is added; otherwise, it remains unchanged.
+        // This is achieved by using the fact that (rank >= 0) evaluates to 1 for non-negative ranks and 0 for negative ranks.
+        rank += (rank < 0) * Extents::rank();
+
         return extents.extent(rank);
+    }
+
+	bool operator==(const Tensor& other) const
+	{
+		return extents == other.extents && storage == other.storage;
+	}
+    bool operator!=(const Tensor& other) const
+    {
+        return !(*this == other);
     }
 
 private:
@@ -109,42 +131,36 @@ private:
 // Multiply function for two 2D Tensors
 
 template<typename T>
-Tensor<T> multiply(const Tensor<T>& leftMatrix, const Tensor<T>& rightMatrix) {
+Tensor<T> matmul_transposed(const Tensor<T>& leftMatrix, const Tensor<T>& rightMatrixTransposed) {
+    // Ensure the inner dimensions match for multiplication
+    if (leftMatrix.shape(-1) != rightMatrixTransposed.shape(-1)) {
+        throw std::invalid_argument("Matrix dimensions must be compatible for multiplication.");
+    }
 
-    constexpr size_t TILE_SIZE = simd<T>::size(); // SIMD width and tile size
+    // Initialize the result tensor
+    Tensor<T> result(typename Tensor<T>::Extents{ leftMatrix.shape(-2), elements_to_simd_units(rightMatrixTransposed.shape(-2)) });
 
-    Tensor<T> result(typename Tensor<T>::Extents{ leftMatrix.shape(0), rightMatrix.shape(1) });
+    constexpr size_t simd_width = simd<float>::size();
 
-    // Looping over the tiles of the result matrix
-    for (size_t i = 0; i < leftMatrix.shape(0); i += TILE_SIZE) {
-        for (size_t j = 0; j < rightMatrix.shape(1); j += TILE_SIZE) {
-            // Initializing a tile in the result matrix to zero
-            std::array<simd<T>, TILE_SIZE> resultTile;
-            resultTile.fill(simd<T>::zero());
+    for (size_t i = 0; i < leftMatrix.shape(-2); i++) {
+        for (size_t j = 0; j < rightMatrixTransposed.shape(-2); j++) {
+            // Initialize sum as a simd vector of zeros
+            simd<T> sum = simd<T>::zero();
 
-            // Looping over the shared dimension to compute the dot products
-            for (size_t k = 0; k < leftMatrix.shape(1); k += TILE_SIZE) {
-                // Loading tiles from leftMatrix and rightMatrix
-                std::array<simd<T>, TILE_SIZE> leftTile;  // Load this tile from leftMatrix
-                std::array<simd<T>, TILE_SIZE> rightTile; // Load this tile from rightMatrix
+            // Perform dot product along contiguous memory
+            for (size_t k = 0; k < leftMatrix.shape(-1); k++) {
+                simd<T> leftValue = leftMatrix[i, k]; // Accessing individual SIMD block
+                simd<T> rightValue = rightMatrixTransposed[j, k]; // Accessing individual SIMD block
 
-                // Perform SIMD operations on the tiles
-                for (size_t ti = 0; ti < TILE_SIZE; ++ti) {
-                    simd<T> sum = simd<T>::zero();
-                    for (size_t tk = 0; tk < TILE_SIZE; ++tk) {
-                        // Accumulate the dot product using SIMD and reduce
-                        sum += leftTile[ti] * rightTile[tk];
-                    }
-                    // Reduce the SIMD vector to a single value and accumulate it in the result tile
-                    resultTile[ti] += simd<T>(reduce(sum));
-                }
+                // Dot product and accumulate using SIMD
+                sum += leftValue * rightValue;
             }
 
-            // Storing the result tile back into the result tensor
-            for (size_t ti = 0; ti < TILE_SIZE; ++ti) {
-                result[i + ti, j] = resultTile[ti];
-            }
+            // Reduce the SIMD vector to a single value and set it in the result tensor
+            result[i, j / simd_width][j % simd_width] = reduce(sum);
         }
     }
+
     return result;
 }
+
