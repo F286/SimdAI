@@ -34,9 +34,13 @@ public:
         data = _mm256_loadu_ps(mem);
     }
 
-    explicit simd(__m256 val) : data(val) {}
-
     explicit simd(T val) : data(_mm256_set1_ps(val)) {}
+
+    simd(float f0, float f1, float f2, float f3, float f4, float f5, float f6, float f7) {
+        data = _mm256_set_ps(f7, f6, f5, f4, f3, f2, f1, f0);
+    }
+
+    explicit simd(__m256 val) : data(val) {}
 
     // Copy constructor
     simd(const simd& other) : data(other.data) {}

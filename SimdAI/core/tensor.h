@@ -165,3 +165,33 @@ Tensor<T> matmul_transposed(const Tensor<T>& leftMatrix, const Tensor<T>& rightM
     return result;
 }
 
+
+template<typename T>
+Tensor<T> transpose(const Tensor<T>& tensor) {
+    const size_t rows = tensor.shape(-2);
+    const size_t cols = tensor.shape(-1);
+
+    constexpr size_t simd_width = simd<float>::size();
+
+    // Ensure the tensor is compatible with the SIMD width
+    if (cols % simd_width != 0) {
+        throw std::invalid_argument("Number of columns must be a multiple of SIMD width.");
+    }
+
+    Tensor<T> transposedTensor(Extents{ cols, rows });
+
+    for (size_t i = 0; i < rows; ++i) {
+        for (size_t j = 0; j < cols; j += simd_width) {
+            // Accessing SIMD blocks and transposing them
+            simd<T> block = tensor[i, j / simd_width];
+
+            for (size_t k = 0; k < simd_width; ++k) {
+                // Transpose the individual elements in the SIMD block
+                // Assuming the Tensor class provides a method to set individual elements
+                transposedTensor[j + k, i / simd_width][i % simd_width] = block[k];
+            }
+        }
+    }
+
+    return transposedTensor;
+}
