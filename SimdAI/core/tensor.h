@@ -32,10 +32,11 @@ namespace
     };
 }
 
+using Extents = std::dextents<int, 2>;
+
 template<typename T>
 class Tensor {
 public:
-    using Extents = std::dextents<int, 2>;
 
     // Constructor for a tensor with an initializer list for extents (shape)
     Tensor(Extents extents)
@@ -138,7 +139,7 @@ Tensor<T> matmul_transposed(const Tensor<T>& leftMatrix, const Tensor<T>& rightM
     }
 
     // Initialize the result tensor
-    Tensor<T> result(typename Tensor<T>::Extents{ leftMatrix.shape(-2), elements_to_simd_units(rightMatrixTransposed.shape(-2)) });
+    Tensor<T> result(Extents{ leftMatrix.shape(-2), elements_to_simd_units(rightMatrixTransposed.shape(-2)) });
 
     constexpr size_t simd_width = simd<float>::size();
 
