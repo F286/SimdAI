@@ -62,7 +62,7 @@ TEST_CASE("Tensor constructed from list of floats", "[Tensor]") {
     // Add more checks if necessary
 }
 
-TEST_CASE("Tensor transpose with simd<float>", "[.offbydefault][transpose]") {
+TEST_CASE("Tensor transpose with simd<float>", "[transpose]") {
     // Initialize a 2x2 Tensor with each simd<float> representing 8 values
     Tensor<float> original = {
         { simd<float>{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f},

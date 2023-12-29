@@ -141,9 +141,9 @@ private:
 
         size_t size_y = data_init.size();
 
-        /*       // Shape 'rounds up' to SIMD size
-               size_x = round_up_to_simd_width(size_x);
-               size_y = round_up_to_simd_width(size_y);*/
+        // Shape 'rounds up' to SIMD size
+        //size_x = round_up_to_simd_width(size_x);
+        size_y = round_up_to_simd_width(size_y);
 
         extents = Extents{ size_y, size_x }; // Least significant dimension is stored towards the right
 
@@ -206,18 +206,19 @@ Tensor<T> matmul_transposed(const Tensor<T>& leftMatrix, const Tensor<T>& rightM
 
 
 template<typename T>
-Tensor<T> transpose(const Tensor<T>& tensor) {
+Tensor<T> transpose(const Tensor<T>& tensor)
+{
+    constexpr size_t simd_width = simd<float>::size();
+
     const size_t rows = tensor.shape(-2);
     const size_t cols = tensor.shape(-1);
 
-    constexpr size_t simd_width = simd<float>::size();
-
     // Ensure the tensor is compatible with the SIMD width
-    if (cols % simd_width != 0) {
+    if (rows % simd_width != 0) {
         throw std::invalid_argument("Number of columns must be a multiple of SIMD width.");
     }
 
-    Tensor<T> transposedTensor(Extents{ cols, rows });
+    Tensor<T> transposedTensor(Extents{ cols * simd_width, rows / simd_width });
 
     for (size_t i = 0; i < rows; ++i) {
         for (size_t j = 0; j < cols; j += simd_width) {
