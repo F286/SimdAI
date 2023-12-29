@@ -40,6 +40,29 @@ TEST_CASE("Tensor multiplication with transposed matrix", "[matmul_transposed]")
 	CHECK(c == expected);
 }
 
+
+TEST_CASE("Tensor multiplication", "[matmul]") {
+	Tensor<float> a = {
+		{ 1, 2, 3 },
+		{ 4, 5, 6 }
+	};
+	Tensor<float> b = {
+		{ 1, 2 },
+		{ 1, 2 },
+		{ 1, 2 }
+	};
+
+	Tensor<float> c = matmul(a, b);
+
+	Tensor<float> expected = {
+		{6, 12},
+		{15, 30}
+	};
+
+	// Check if the result matches the expected tensor
+	CHECK(c == expected);
+}
+
 TEST_CASE("Tensor constructed from list of floats", "[Tensor]") {
 	// Initialize Tensor with a nested initializer list of floats
 	Tensor<float> tensor = {

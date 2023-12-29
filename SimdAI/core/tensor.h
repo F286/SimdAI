@@ -221,6 +221,12 @@ Tensor<T> matmul_transposed(const Tensor<T>& leftMatrix, const Tensor<T>& rightM
     return result;
 }
 
+template<typename T>
+Tensor<T> matmul(const Tensor<T>& leftMatrix, const Tensor<T>& rightMatrix)
+{
+    const auto rightMatrixTransposed = transpose(rightMatrix);
+    return matmul_transposed(leftMatrix, rightMatrixTransposed);
+}
 
 template<typename T>
 Tensor<T> transpose(const Tensor<T>& tensor)
