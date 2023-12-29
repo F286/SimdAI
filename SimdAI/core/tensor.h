@@ -7,6 +7,7 @@
 #include <numeric>
 #include <algorithm>
 #include <array>
+#include <ostream>
 #include "mdspan.hpp"
 
 namespace
@@ -124,6 +125,22 @@ public:
     bool operator!=(const Tensor& other) const
     {
         return !(*this == other);
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const Tensor<T>& tensor) {
+        os << "Tensor:\n";
+        for (size_t i = 0; i < tensor.shape(0); ++i) {
+            for (size_t j = 0; j < tensor.shape(1); ++j) {
+                if (j != 0) {
+                    os << ", ";
+                }
+                // Convert each simd<float> to a human-readable format
+                simd<float> simdValue = tensor[i, j];
+                os << simdValue;
+            }
+            os << "\n"; // New line at the end of each row
+        }
+        return os;
     }
 
 private:

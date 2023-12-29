@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <functional>
 #include <initializer_list>
+#include <iomanip>
 
 // Forward declare the simd class
 template<typename T, std::size_t N>
@@ -152,15 +153,16 @@ public:
     }
 
     // Used for debug output
-    friend std::ostream& operator<<(std::ostream& os, const simd& obj) {
-        os << "simd{";
-        for (std::size_t i = 0; i < N; ++i) {
-            if (i != 0) {
+    friend std::ostream& operator<<(std::ostream& os, const simd& obj)
+    {
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            if (i != 0) 
+            {
                 os << ", ";
             }
-            os << obj[i]; // Using the subscript operator to access elements
+            os << std::setprecision(2) << obj[i];
         }
-        os << "}";
         return os;
     }
 
