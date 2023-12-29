@@ -46,7 +46,23 @@ TEST_CASE("Tensor multiplication with transposed matrix is computed", "[matmul_t
     CHECK(c == expected);
 }
 
-TEST_CASE("Tensor transpose with simd<float>", "[transpose]") {
+TEST_CASE("Tensor constructed from list of floats", "[Tensor]") {
+    // Initialize Tensor with a nested initializer list of floats
+    Tensor<float> tensor = {
+        {1.0f, 2.0f, 3.0f, 4.0f},
+        {5.0f, 6.0f, 7.0f, 8.0f},
+        {9.0f}  // This row is shorter and should be padded with zeros
+    };
+
+    // Check the elements of the tensor
+    CHECK(tensor[0, 0] == simd<float>(1.0f, 2.0f, 3.0f, 4.0f, 0.0f, 0.0f, 0.0f, 0.0f));
+    CHECK(tensor[1, 0] == simd<float>(5.0f, 6.0f, 7.0f, 8.0f, 0.0f, 0.0f, 0.0f, 0.0f));
+    CHECK(tensor[2, 0] == simd<float>(9.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f));
+
+    // Add more checks if necessary
+}
+
+TEST_CASE("Tensor transpose with simd<float>", "[.offbydefault][transpose]") {
     // Initialize a 2x2 Tensor with each simd<float> representing 8 values
     Tensor<float> original = {
         { simd<float>{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f},

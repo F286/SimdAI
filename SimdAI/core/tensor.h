@@ -49,36 +49,38 @@ public:
     // Constructor for a tensor with an initializer list for data
     Tensor(std::initializer_list<std::initializer_list<simd<float>>> data_init)
     {
-        // Compute and assign extents
-        size_t size_x = 1;
-        for (const auto& row : data_init)
+        initialize(std::move(data_init));
+    }
+
+    // Constructor taking a nested initializer list of floats
+    Tensor(std::initializer_list<std::initializer_list<float>> init_list) 
+    {
+        constexpr size_t simd_width = simd<float>::size();
+        std::vector<std::vector<simd<float>>> simdInitList;
+
+        for (const auto& row : init_list) 
         {
-            size_x = std::max(size_x, row.size());
-        }
+            std::vector<simd<float>> simdRow;
 
-        size_t size_y = data_init.size();
-
- /*       // Shape 'rounds up' to SIMD size
-        size_x = round_up_to_simd_width(size_x);
-        size_y = round_up_to_simd_width(size_y);*/
-
-        extents = Extents{ size_y, size_x }; // Least significant dimension is stored towards the right
-
-        // Initialize storage
-        storage = std::vector<simd<T>>(total_elements(extents));
-
-        // Populate storage
-        auto store_to = data();
-
-        for (size_t y = 0; y < data_init.size(); ++y)
-        {
-            const auto& row = data_init.begin()[y]; // row major
-
-            for (size_t x = 0; x < row.size(); ++x)
+            for (size_t i = 0; i < row.size(); i += simd_width) 
             {
-                store_to[y, x] = row.begin()[x];
+                float values[simd_width] = {}; // Temporary array for SIMD values, initialized to zeros
+
+                // Fill the array with values from the initializer list, pad with zeros if necessary
+                for (size_t j = 0; j < simd_width && i + j < row.size(); ++j) {
+                    values[j] = *(row.begin() + i + j);
+                }
+
+                // Create a simd<float> and add to the row
+                simdRow.emplace_back(values[0], values[1], values[2], values[3],
+                    values[4], values[5], values[6], values[7]);
             }
+
+            simdInitList.push_back(std::move(simdRow));
         }
+
+        // Call the existing constructor with simd<float> initializer list
+        initialize(std::move(simdInitList));
     }
 
     // Access an element in the tensor using 2D indices. The least significant bit is store to the very right (like arabic numerals). Therefore order is e.g. [batch, y, x]
@@ -125,6 +127,43 @@ public:
     }
 
 private:
+
+    // Constructor for a tensor with an initializer list for data
+    template<class NestedList = std::initializer_list<std::initializer_list<simd<float>>>>
+    void initialize(NestedList data_init)
+    {
+        // Compute and assign extents
+        size_t size_x = 1;
+        for (const auto& row : data_init)
+        {
+            size_x = std::max(size_x, row.size());
+        }
+
+        size_t size_y = data_init.size();
+
+        /*       // Shape 'rounds up' to SIMD size
+               size_x = round_up_to_simd_width(size_x);
+               size_y = round_up_to_simd_width(size_y);*/
+
+        extents = Extents{ size_y, size_x }; // Least significant dimension is stored towards the right
+
+        // Initialize storage
+        storage = std::vector<simd<T>>(total_elements(extents));
+
+        // Populate storage
+        auto store_to = data();
+
+        for (size_t y = 0; y < data_init.size(); ++y)
+        {
+            const auto& row = data_init.begin()[y]; // row major
+
+            for (size_t x = 0; x < row.size(); ++x)
+            {
+                store_to[y, x] = row.begin()[x];
+            }
+        }
+    }
+
 	std::vector<simd<T>> storage;
 	Extents extents{};
 };
