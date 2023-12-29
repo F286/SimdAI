@@ -16,19 +16,13 @@ TEST_CASE("Tensor operations", "[tensor]") {
 	}
 }
 
-TEST_CASE("Tensor multiplication with transposed matrix is computed", "[matmul_transposed]") {
+TEST_CASE("Tensor multiplication with transposed matrix", "[matmul_transposed]") {
 	// Define two tensors with multiple simd<float> elements per row/column
 	Tensor<float> a = {
 		{ simd<float>{1}, simd<float>{2}, simd<float>{3} },
 		{ simd<float>{4}, simd<float>{5}, simd<float>{6} }
 	};
 	Tensor<float> b = {
-		{ simd<float>{2}, simd<float>{2}, simd<float>{2} },
-		{ simd<float>{2}, simd<float>{2}, simd<float>{2} },
-		{ simd<float>{2}, simd<float>{2}, simd<float>{2} },
-		{ simd<float>{2}, simd<float>{2}, simd<float>{2} },
-		{ simd<float>{2}, simd<float>{2}, simd<float>{2} },
-		{ simd<float>{2}, simd<float>{2}, simd<float>{2} },
 		{ simd<float>{2}, simd<float>{2}, simd<float>{2} },
 		{ simd<float>{2}, simd<float>{2}, simd<float>{2} },
 	};
@@ -38,8 +32,8 @@ TEST_CASE("Tensor multiplication with transposed matrix is computed", "[matmul_t
 
 	// Define the expected result tensor
 	Tensor<float> expected = {
-		{ simd<float>{96} },
-		{ simd<float>{240} }
+		{96, 96},
+		{240, 240}
 	};
 
 	// Check if the result matches the expected tensor

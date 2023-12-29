@@ -153,18 +153,15 @@ public:
     }
 
     // Used for debug output
-    friend std::ostream& operator<<(std::ostream& os, const simd& obj)
+    friend std::ostream& operator<<(std::ostream& os, const simd& obj) 
     {
         for (std::size_t i = 0; i < N; ++i)
         {
-            if (i != 0) 
-            {
-                os << ", ";
-            }
-            os << std::setprecision(2) << obj[i];
+            os << std::right << std::setw(8) << obj[i];
         }
         return os;
     }
+
 
 private:
     __m256 data;

@@ -128,7 +128,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Tensor<T>& tensor) {
-        os << "Tensor:\n";
+        os << "Tensor [" << tensor.shape(0) << ", " << tensor.shape(1) << "]\n";
         for (size_t i = 0; i < tensor.shape(0); ++i) {
             for (size_t j = 0; j < tensor.shape(1); ++j) {
                 if (j != 0) {
