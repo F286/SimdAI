@@ -40,7 +40,6 @@ TEST_CASE("Tensor multiplication with transposed matrix", "[matmul_transposed]")
 	CHECK(c == expected);
 }
 
-
 TEST_CASE("Tensor multiplication", "[matmul]") {
 	Tensor<float> a = {
 		{ 1, 2, 3 },
@@ -99,4 +98,39 @@ TEST_CASE("Tensor transpose with simd<float>", "[transpose]") {
 
 	// Check if the transposed tensor matches the expected tensor
 	REQUIRE(transposed == expected);
+}
+
+TEST_CASE("Tensor multiplication derivative", "[matmul_derivative]") {
+	Tensor<float> a = {
+		{1, 2},
+		{3, 4}
+	};
+	Tensor<float> b = {
+		{2, 0},
+		{0, 2}
+	};
+
+	// dC is the gradient of the loss with respect to the output matrix C
+	// For simplicity, let's assume it's a matrix of ones with the same shape as the output of matmul(a, b)
+	Tensor<float> dC = {
+		{1, 1},
+		{1, 1}
+	};
+
+	// Calculate the derivatives
+	auto [dA, dB] = matmul_derivative(a, b, dC);
+
+	// Expected derivatives can be calculated manually or using a symbolic math tool
+	Tensor<float> expected_dA = {
+		{2, 2},
+		{2, 2}
+	};
+	Tensor<float> expected_dB = {
+		{4, 4},
+		{6, 6}
+	};
+
+	// Check if the results match the expected tensors
+	CHECK(dA == expected_dA);
+	CHECK(dB == expected_dB);
 }

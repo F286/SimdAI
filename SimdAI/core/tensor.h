@@ -258,3 +258,14 @@ Tensor<T> transpose(const Tensor<T>& tensor)
 
     return transposedTensor;
 }
+
+template<typename T>
+std::pair<Tensor<T>, Tensor<T>> matmul_derivative(const Tensor<T>& leftMatrix, const Tensor<T>& rightMatrix, const Tensor<T>& dC) {
+    // Calculate the derivative with respect to leftMatrix (dA)
+    auto dA = matmul(dC, transpose(rightMatrix));
+
+    // Calculate the derivative with respect to rightMatrix (dB)
+    auto dB = matmul(transpose(leftMatrix), dC);
+
+    return {dA, dB};
+}
